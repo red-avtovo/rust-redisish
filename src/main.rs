@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 mod task;
 mod redis;
-use task::pool::pool;
-use redis::ish::ish::handle_client;
+use task::pool;
+use redis::ish::handle_client;
 
 //echo "PUBLISH info one, info 2, Grüße, Jürgen ❤" | nc 127.0.0.1 8080
 //echo "RETRIEVE" | nc localhost 8080
