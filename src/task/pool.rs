@@ -7,11 +7,11 @@ use std::sync::Arc;
 #[derive(Debug)]
 struct ThreadInfo {
     id: i32,
-    busy: Arc<AtomicBool>,
+    busy: AtomicBool,
 }
 
 pub struct PoolsThread<F: FnOnce() + Send> {
-    thread: ThreadInfo,
+    thread: Arc<ThreadInfo>,
     task_sender: Sender<Box<F>>,
 }
 
@@ -19,15 +19,15 @@ pub struct Pool<F: FnOnce() + Send> {
     threads: Vec<PoolsThread<F>>
 }
 
-fn handler<F>(rx: Receiver<Box<F>>, busy: &mut Arc<AtomicBool>)
+fn handler<F>(rx: Receiver<Box<F>>, info: &mut Arc<ThreadInfo>)
     where F: FnOnce() + Send
 {
     rx.recv().map(|f| {
-        busy.store(true, Ordering::SeqCst);
-        println!("I'm busy");
+        info.busy.store(true, Ordering::SeqCst);
+        println!("#{} is busy", info.id);
         (f)();
-        busy.store(false, Ordering::SeqCst);
-        println!("I'm free");
+        info.busy.store(false, Ordering::SeqCst);
+        println!("#{} is free", info.id);
     }).unwrap();
 }
 
@@ -37,14 +37,14 @@ fn init_thread<F>(n: i32) -> PoolsThread<F>
     println!("initiating {} thread in the pool", n);
     let (tx, rx): (Sender<Box<F>>, Receiver<Box<F>>) = channel();
     let pt = PoolsThread {
-        thread: ThreadInfo {
+        thread: Arc::new(ThreadInfo {
             id: n,
-            busy: Arc::new(AtomicBool::new(false)),
-        },
+            busy: AtomicBool::new(false),
+        }),
         task_sender: tx,
     };
-    let mut inner_busy = Arc::clone(&pt.thread.busy);
-    thread::spawn(move || handler(rx, &mut inner_busy));
+    let mut inner_info = Arc::clone(&pt.thread);
+    thread::spawn(move || handler(rx, &mut inner_info));
     pt
 }
 
