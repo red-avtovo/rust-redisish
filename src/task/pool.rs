@@ -22,13 +22,18 @@ pub struct Pool<F: FnOnce() + Send> {
 fn handler<F>(rx: Receiver<Box<F>>, info: &mut Arc<ThreadInfo>)
     where F: FnOnce() + Send
 {
-    rx.recv().map(|f| {
-        info.busy.store(true, Ordering::SeqCst);
-        println!("#{} is busy", info.id);
-        (f)();
-        info.busy.store(false, Ordering::SeqCst);
-        println!("#{} is free", info.id);
-    }).unwrap();
+    loop {
+        match rx.recv() {
+            Ok(f) => {
+                info.busy.store(true, Ordering::SeqCst);
+                println!("#{} is busy", info.id);
+                (f)();
+                info.busy.store(false, Ordering::SeqCst);
+                println!("#{} is free", info.id);
+            },
+            _ => return
+        }
+    }
 }
 
 fn init_thread<F>(n: i32) -> PoolsThread<F>

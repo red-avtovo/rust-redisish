@@ -38,12 +38,12 @@ pub fn handle_client(stream: TcpStream, data: &Arc<Mutex<Vec<String>>>) {
                     Some(d) => {
                         println!("retrieved: {}", d);
                         log_if_error!(writer.write(format!("{}\n", d).as_bytes()));
-                        log_if_error!(writer.flush());
                     }
                     None => {
                         println!("Nothing left in the storage");
                     }
                 }
+                log_if_error!(writer.flush());
             }
             QUIT => break,
             _ => {}
