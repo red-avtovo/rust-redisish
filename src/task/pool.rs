@@ -10,13 +10,13 @@ struct ThreadInfo {
     busy: AtomicBool,
 }
 
-pub struct PoolsThread<F: FnOnce() + Send> {
+pub struct PooledThread<F: FnOnce() + Send> {
     thread: Arc<ThreadInfo>,
     task_sender: Sender<Box<F>>,
 }
 
 pub struct Pool<F: FnOnce() + Send> {
-    threads: Vec<PoolsThread<F>>
+    threads: Vec<PooledThread<F>>
 }
 
 fn handler<F>(rx: Receiver<Box<F>>, info: &mut Arc<ThreadInfo>)
@@ -36,12 +36,12 @@ fn handler<F>(rx: Receiver<Box<F>>, info: &mut Arc<ThreadInfo>)
     }
 }
 
-fn init_thread<F>(n: i32) -> PoolsThread<F>
+fn init_thread<F>(n: i32) -> PooledThread<F>
     where F: FnOnce() + Send + 'static
 {
     println!("initiating {} thread in the pool", n);
     let (tx, rx): (Sender<Box<F>>, Receiver<Box<F>>) = channel();
-    let pt = PoolsThread {
+    let pt = PooledThread {
         thread: Arc::new(ThreadInfo {
             id: n,
             busy: AtomicBool::new(false),
